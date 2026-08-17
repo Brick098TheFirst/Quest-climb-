@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3 uid="uid://b1holdquestclimb"]
+
+[ext_resource type="Script" path="res://scripts/hold.gd" id="1_hold"]
+
+[sub_resource type="SphereMesh" id="HoldMesh"]
+radius = 0.075
+height = 0.14
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereShape3D" id="HoldShape"]
+radius = 0.08
+
+[node name="Hold" type="StaticBody3D"]
+script = ExtResource("1_hold")
+required_grip = 0.4
+hold_color = Color(0.25, 0.75, 0.35, 1)
+hold_radius = 0.075
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("HoldMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("HoldShape")

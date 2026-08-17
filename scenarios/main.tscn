@@ -1,0 +1,151 @@
+[gd_scene load_steps=16 format=3 uid="uid://b4mainquestclimb"]
+
+[ext_resource type="Script" path="res://scripts/xr_init.gd" id="1_xrinit"]
+[ext_resource type="Script" path="res://scripts/climber_body.gd" id="2_climber"]
+[ext_resource type="Script" path="res://scripts/rope_system.gd" id="3_rope"]
+[ext_resource type="Script" path="res://scripts/fake_belayer.gd" id="4_belayer"]
+[ext_resource type="Script" path="res://scripts/fall_catcher.gd" id="5_fall"]
+[ext_resource type="Script" path="res://scripts/rope_grab.gd" id="6_ropegrab"]
+[ext_resource type="Script" path="res://scripts/wall_builder.gd" id="7_wall"]
+[ext_resource type="Script" path="res://scripts/hand_visual.gd" id="8_handvisual"]
+[ext_resource type="Script" path="res://scripts/stamina_feedback.gd" id="9_stamina"]
+[ext_resource type="Shader" path="res://assets/vignette.gdshader" id="10_vignette"]
+
+[sub_resource type="ShaderMaterial" id="VignetteMat"]
+shader = ExtResource("10_vignette")
+shader_parameter/intensity = 1.0
+
+[sub_resource type="StandardMaterial3D" id="RopeMat"]
+albedo_color = Color(0.95, 0.83, 0.45, 1)
+roughness = 0.9
+shading_mode = 0
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
+sky_top_color = Color(0.09, 0.09, 0.13, 1)
+sky_horizon_color = Color(0.18, 0.18, 0.22, 1)
+ground_bottom_color = Color(0.06, 0.06, 0.08, 1)
+ground_horizon_color = Color(0.14, 0.14, 0.18, 1)
+
+[sub_resource type="Sky" id="SkyRes"]
+sky_material = SubResource("SkyMat")
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 2
+sky = SubResource("SkyRes")
+ambient_light_source = 3
+ambient_light_color = Color(0.55, 0.58, 0.65, 1)
+ambient_light_energy = 0.5
+tonemap_mode = 2
+ssao_enabled = true
+sdfgi_enabled = false
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.86, -0.25, 0.43, 0, 0.86, 0.5, -0.5, -0.43, 0.74, 0, 16, 0)
+light_energy = 1.3
+shadow_enabled = true
+
+[node name="XROrigin3D" type="XROrigin3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.8)
+current = true
+
+[node name="XRCamera3D" type="XRCamera3D" parent="XROrigin3D"]
+
+[node name="LeftController" type="XRController3D" parent="XROrigin3D"]
+tracker = &"left_hand"
+pose = &"aim"
+show_touch = false
+
+[node name="LeftHandPivot" type="Node3D" parent="XROrigin3D/LeftController"]
+script = ExtResource("8_handvisual")
+is_left = true
+skin_color = Color(0.88, 0.72, 0.58, 1)
+climber_path = NodePath("../../Climber")
+
+[node name="RightController" type="XRController3D" parent="XROrigin3D"]
+tracker = &"right_hand"
+pose = &"aim"
+show_touch = false
+
+[node name="RightHandPivot" type="Node3D" parent="XROrigin3D/RightController"]
+script = ExtResource("8_handvisual")
+is_left = false
+skin_color = Color(0.88, 0.72, 0.58, 1)
+climber_path = NodePath("../../Climber")
+
+[node name="Climber" type="Node3D" parent="."]
+script = ExtResource("2_climber")
+xr_origin = NodePath("../XROrigin3D")
+left_controller = NodePath("../XROrigin3D/LeftController")
+right_controller = NodePath("../XROrigin3D/RightController")
+left_hand_pivot = NodePath("../XROrigin3D/LeftController/LeftHandPivot")
+right_hand_pivot = NodePath("../XROrigin3D/RightController/RightHandPivot")
+turn_speed = 2.2
+walk_speed = 2.4
+grab_activation_threshold = 0.55
+min_hold_strength = 0.15
+
+[node name="XRInit" type="Node3D" parent="."]
+script = ExtResource("1_xrinit")
+xr_origin = NodePath("../XROrigin3D")
+camera = NodePath("../XROrigin3D/XRCamera3D")
+target_refresh_rate = 90.0
+
+[node name="Wall" type="Node3D" parent="."]
+script = ExtResource("7_wall")
+wall_width = 4.0
+wall_height = 15.0
+
+[node name="RopeSystem" type="Node3D" parent="." groups=["rope"]]
+script = ExtResource("3_rope")
+belayer_anchor = Vector3(-0.5, 0.1, 1.6)
+climber = NodePath("../Climber")
+
+[node name="RopeMesh" type="MeshInstance3D" parent="RopeSystem"]
+material_override = SubResource("RopeMat")
+cast_shadow = 0
+
+[node name="FakeBelayer" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0.1, 1.6)
+script = ExtResource("4_belayer")
+climber_path = NodePath("../Climber")
+rope_path = NodePath("../RopeSystem")
+pay_rate = 1.6
+take_rate = 2.2
+fall_lock_window = 0.18
+
+[node name="FallCatcher" type="Node3D" parent="."]
+script = ExtResource("5_fall")
+xr_origin = NodePath("../XROrigin3D")
+climber_path = NodePath("../Climber")
+catch_stiffness = 55.0
+catch_damping = 8.0
+rope_stretch = 1.4
+
+[node name="RopeGrab" type="Node3D" parent="."]
+script = ExtResource("6_ropegrab")
+climber_path = NodePath("../Climber")
+rope_path = NodePath("../RopeSystem")
+left_controller = NodePath("../XROrigin3D/LeftController")
+right_controller = NodePath("../XROrigin3D/RightController")
+grab_threshold = 0.45
+release_threshold = 0.12
+
+[node name="StaminaFeedback" type="CanvasLayer" parent="."]
+script = ExtResource("9_stamina")
+climber_path = NodePath("../Climber")
+left_controller = NodePath("../XROrigin3D/LeftController")
+right_controller = NodePath("../XROrigin3D/RightController")
+vignette = NodePath("Vignette")
+
+[node name="Vignette" type="ColorRect" parent="StaminaFeedback"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+material = SubResource("VignetteMat")

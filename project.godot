@@ -1,0 +1,64 @@
+; Engine configuration file.
+; Godot 4.3 - Quest Climb
+; Hands-only lead-climbing VR game for Meta Quest 2.
+
+config_version=5
+
+[application]
+
+config/name="Quest Climb"
+config/description="Hands-only lead climbing in VR. Clip the draws, don't pump out."
+run/main_scene="res://scenarios/main.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://icon.svg"
+boot_splash/show_image=false
+
+[autoload]
+
+GameState="*res://scripts/game_state.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/handheld/orientation=0
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[input]
+
+toggle_pause={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":4194305,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+pointing/emulate_mouse_from_touch=false
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/screen_space_aa=1
+scaling_3d/mode=1
+scaling_3d/scale=0.85
+textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=2048
+environment/defaults/default_clear_color=Color(0.18, 0.18, 0.2, 1)
+
+[xr]
+
+openxr/enabled=true
+openxr/form_factor=2
+openxr/view_configuration=1
+openxr/reference_space=3
+openxr/environment_blend_mode=1
+openxr/foveation_level=3
+openxr/submit_depth_buffer=true
+openxr/refresh_rate=90
+openxr/start_in_vr=true
+shaders/enabled=true
