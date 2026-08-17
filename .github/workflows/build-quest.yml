@@ -1,0 +1,103 @@
+name: Build Quest APK
+
+on:
+  push:
+    branches: [arena/01a010ba-quest-climb, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.3"
+  GODOT_RELEASE: "stable"
+  PLUGIN_VERSION: "2.0.3"
+  JAVA_VERSION: "17"
+
+jobs:
+  build:
+    name: Build Meta Quest APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
+            ndk;25.2.9519653
+            cmake;3.22.1
+
+      - name: Cache Godot editor
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE }}
+
+      - name: Download Godot headless editor
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/share/godot
+          cd ~/.local/share/godot
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64.zip"
+          curl -L --fail -o godot.zip "$URL"
+          unzip -q godot.zip
+          mv Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64 godot
+          chmod +x godot
+          rm godot.zip
+
+      - name: Put Godot on PATH
+        run: echo "$HOME/.local/share/godot" >> "$GITHUB_PATH"
+
+      - name: Download OpenXR Vendors plugin
+        run: |
+          chmod +x .github/scripts/setup-godot-vendors.sh
+          GODOT_VERSION="${GODOT_VERSION}" PLUGIN_VERSION="${PLUGIN_VERSION}" \
+            .github/scripts/setup-godot-vendors.sh
+
+      - name: Install export templates
+        run: |
+          TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
+          curl -L --fail -o /tmp/templates.tpz "$TEMPLATE_URL"
+          unzip -q -o /tmp/templates.tpz -d /tmp/templates
+          cp -r /tmp/templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}/
+          rm -rf /tmp/templates /tmp/templates.tpz
+
+      - name: Import project
+        run: godot --headless --import
+
+      - name: Create debug keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore debug.keystore \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" \
+            -validity 10000 -deststoretype pkcs12
+
+      - name: Export APK
+        run: |
+          mkdir -p build
+          godot --headless --export-debug "Meta Quest" build/quest-climb.apk
+
+      - name: Check APK exists
+        run: |
+          ls -la build/quest-climb.apk
+          file build/quest-climb.apk || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quest-climb-apk
+          path: build/quest-climb.apk
+          if-no-files-found: error
+          retention-days: 30
